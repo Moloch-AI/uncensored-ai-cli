@@ -1,0 +1,147 @@
+name: Release
+
+# Publishing a GitHub release (tag vX.Y.Z) builds and checks the package, smoke-tests the wheel,
+# attaches the files to the release and, when the repository variable PUBLISH_TO_PYPI is 'true',
+# publishes them to PyPI with Trusted Publishing. Run by hand (workflow_dispatch), it is a dry
+# run: build and checks only, nothing is uploaded. See RELEASING.md.
+#
+# PyPI rejects packages that depend on a direct reference (molochai @ git+https://...). While
+# pyproject.toml has one, the build job warns, and it fails when it is about to publish to PyPI.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install the build tools
+        run: python -m pip install "build==1.6.1" "twine==7.0.0" "packaging==26.3"
+      - name: Build the sdist and wheel
+        run: python -m build
+      - name: Check the metadata and the README
+        run: twine check --strict dist/*
+      - name: Check the version, the tag and the dependencies
+        id: check
+        env:
+          EVENT: ${{ github.event_name }}
+          TAG: ${{ github.event.release.tag_name || (github.ref_type == 'tag' && github.ref_name) || '' }}
+          FOR_PYPI: ${{ github.event_name == 'release' && vars.PUBLISH_TO_PYPI == 'true' }}
+        run: |
+          args=()
+          if [ -n "$TAG" ]; then
+            args+=(--tag "$TAG")
+          else
+            echo "::notice title=Dry run::Not started from a tag, so the tag check is skipped."
+          fi
+          if [ "$FOR_PYPI" = "true" ]; then
+            args+=(--for-pypi)
+          elif [ "$EVENT" = "release" ]; then
+            echo "::notice title=GitHub only::The repository variable PUBLISH_TO_PYPI is not 'true', so this release is not published to PyPI."
+          fi
+          python .github/scripts/check_dist.py "${args[@]}" dist
+      - name: Install the wheel in a fresh virtual environment and run it
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          python -m venv "$RUNNER_TEMP/smoke"
+          # Also installs the SDK the wheel depends on.
+          "$RUNNER_TEMP/smoke/bin/python" -m pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          printed=$("$RUNNER_TEMP/smoke/bin/molochai" --version)
+          echo "$printed"
+          case "$printed" in
+            "molochai-cli $VERSION "*) ;;
+            *)
+              echo "::error::molochai --version printed '$printed', expected molochai-cli $VERSION."
+              exit 1
+              ;;
+          esac
+          "$RUNNER_TEMP/smoke/bin/molochai" --help
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  github-release:
+    name: Attach the files to the GitHub release
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Upload the sdist and wheel to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+
+  pypi:
+    name: Publish to PyPI
+    needs: [build, github-release]
+    if: github.event_name == 'release' && vars.PUBLISH_TO_PYPI == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/molochai-cli
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  verify-pypi:
+    name: Install the release from PyPI
+    needs: [build, pypi]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: pip install molochai-cli==${{ needs.build.outputs.version }}
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          python -m venv "$RUNNER_TEMP/pypi"
+          cd "$RUNNER_TEMP"
+          # A new upload can take a few minutes to show up in the index.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if "$RUNNER_TEMP/pypi/bin/python" -m pip install --no-cache-dir "molochai-cli==$VERSION"; then
+              break
+            fi
+            if [ "$attempt" -eq 10 ]; then
+              echo "::error::molochai-cli $VERSION could not be installed from PyPI."
+              exit 1
+            fi
+            sleep 30
+          done
+          "$RUNNER_TEMP/pypi/bin/molochai" --version

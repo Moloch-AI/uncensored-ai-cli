@@ -27,7 +27,9 @@ classifiers = [
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
-# The SDK is not on PyPI yet; it is installed from its release tag on GitHub.
+# Until the SDK is on PyPI it is installed from its release tag on GitHub. PyPI rejects this
+# direct reference, so the release workflow will not publish to PyPI while it is here;
+# RELEASING.md has the switch to "molochai>=0.1.2,<0.2".
 dependencies = ["molochai @ git+https://github.com/Moloch-AI/uncensored-ai-python@v0.1.1"]
 
 [project.optional-dependencies]
@@ -54,7 +56,7 @@ Changelog = "https://github.com/Moloch-AI/uncensored-ai-cli/blob/main/CHANGELOG.
 path = "src/molochai_cli/_version.py"
 
 [tool.hatch.metadata]
-# Needed for the git+https dependency on the SDK.
+# Needed for the git+https dependency on the SDK. Remove it with the switch to PyPI.
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
@@ -73,6 +75,7 @@ select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF", "C4", "PT", "RET", "PIE",
 ignore = ["RUF022"]
 
 [tool.ruff.lint.per-file-ignores]
+".github/scripts/*" = ["T20"]
 "src/molochai_cli/links.py" = ["E501"]
 "tests/*" = ["T20", "PT012"]
 

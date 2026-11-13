@@ -4,7 +4,7 @@
 questions for scripts and pipes, the model list and your account details.
 
 [![CI](https://github.com/Moloch-AI/uncensored-ai-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/Moloch-AI/uncensored-ai-cli/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Moloch-AI/uncensored-ai-cli/blob/main/LICENSE)
 
 ## Overview
 
@@ -299,7 +299,9 @@ Each setting is taken from the first of these that has it:
 | Colors | `--no-color` | `NO_COLOR` (any non-empty value), `TERM=dumb` | | on for terminals |
 
 Empty environment variables count as unset. `--base-url` and `--no-color` work before or after
-the command name. [.env.example](.env.example) lists the variables.
+the command name.
+[.env.example](https://github.com/Moloch-AI/uncensored-ai-cli/blob/main/.env.example) lists the
+variables.
 
 The config file is JSON. `molochai config path` prints its location:
 
@@ -409,14 +411,17 @@ For problems with the hosted API or your account, use
 - **Reduced refusals.** These models decline less often. The
   [Acceptable Use Policy](https://molochai.dev/acceptable-use?utm_source=github&utm_medium=oss&utm_campaign=uncensored-ai-cli)
   applies to everything sent through the API.
-- Report vulnerabilities in this CLI as described in [SECURITY.md](SECURITY.md). Never post API
-  keys in issues.
+- Report vulnerabilities in this CLI as described in
+  [SECURITY.md](https://github.com/Moloch-AI/uncensored-ai-cli/blob/main/SECURITY.md). Never post
+  API keys in issues.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, the unit and integration tests
-and the checks CI runs. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+See [CONTRIBUTING.md](https://github.com/Moloch-AI/uncensored-ai-cli/blob/main/CONTRIBUTING.md)
+for the development setup, the unit, integration and opt-in live tests, and the checks CI runs.
+Changes are listed in
+[CHANGELOG.md](https://github.com/Moloch-AI/uncensored-ai-cli/blob/main/CHANGELOG.md).
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/Moloch-AI/uncensored-ai-cli/blob/main/LICENSE).
