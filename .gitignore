@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# Tool caches and reports
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local secrets
+.env
+
+# Chat transcripts saved with /save under the default name
+molochai-chat-*.md
+
+# A local checkout of the mock server repository
+uncensored-ai-api/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
