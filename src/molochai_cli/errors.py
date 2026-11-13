@@ -25,7 +25,7 @@ from molochai import (
     UpstreamError,
 )
 
-from .links import DASHBOARD_URL, KEYS_URL, PRICING_URL
+from .links import BILLING_URL, DASHBOARD_URL, KEYS_URL, PRICING_URL
 
 __all__ = [
     "CLIError",
@@ -137,7 +137,7 @@ def describe_error(
         return Problem(
             "No active plan and no credit (HTTP 402).",
             [
-                f"Add credit or buy a plan in the dashboard: {DASHBOARD_URL}",
+                f"Add credit or buy a plan in the dashboard under Billing: {BILLING_URL}",
                 f"Plans and limits: {PRICING_URL}",
             ],
         )
@@ -186,7 +186,7 @@ def describe_error(
         if error.resets_at is not None:
             hints.append(f"It resets at {format_local_time(error.resets_at, now=now)}.")
         if error.kind != "session":
-            hints.append(f"Add credit to keep going now: {DASHBOARD_URL}")
+            hints.append(f"Add credit to keep going now: {BILLING_URL}")
         return Problem(headline, hints)
     if isinstance(error, RateLimitError):
         wait = (

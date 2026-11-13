@@ -35,7 +35,7 @@ def test_models_payment_required(cli: Runner) -> None:
     result = cli("models", handler=router)
     assert result.code == 1
     assert "No active plan and no credit (HTTP 402)." in result.err
-    assert "https://dash.molochai.dev/?utm_source=github" in result.err
+    assert "https://dash.molochai.dev/billing?utm_source=github" in result.err
 
 
 def account_body(**overrides: Any) -> dict[str, Any]:

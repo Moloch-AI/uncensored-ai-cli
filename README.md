@@ -368,7 +368,7 @@ use `ask` in scripts that need to detect errors.
 | `molochai ask` waits and prints nothing | It is reading stdin, which is not a terminal and has not ended (some IDE terminals, task runners and parent processes leave it open). Add `--no-stdin`, or redirect `< /dev/null`. On a terminal a "reading stdin" status line shows while it waits. |
 | `No API key.` (exit 3) | Run `molochai config set-key`, or set `MOLOCHAI_API_KEY`. |
 | `The API key was not accepted (HTTP 401).` | The key is mistyped or revoked. `molochai config show` shows which source is used; create a new key in the dashboard. |
-| `No active plan and no credit (HTTP 402).` | Add credit or buy a plan in the [dashboard](https://dash.molochai.dev/?utm_source=github&utm_medium=oss&utm_campaign=uncensored-ai-cli). This also happens on `molochai models`. |
+| `No active plan and no credit (HTTP 402).` | Add credit or buy a plan in the dashboard under [Billing](https://dash.molochai.dev/billing?utm_source=github&utm_medium=oss&utm_campaign=uncensored-ai-cli). This also happens on `molochai models`. |
 | `Your account email is not verified yet (HTTP 403)` | Verify the email address, then try again. |
 | `The input is too long for this model` | The prompt is over the context limit. The message says whether your plan or the serving server set it. In chat, `/clear` starts over. |
 | `Your monthly quota is used up` / `The 5-hour session cap is reached.` | The message shows when it resets, in local time. These are not retried. |
