@@ -2,11 +2,18 @@ name: Live API
 
 # Opt-in tests of the CLI against the real API (tests/live). The unauthenticated tier runs the
 # CLI with an invalid key and costs nothing; it always runs. The authenticated tier needs the
-# MOLOCHAI_API_KEY repository secret and is skipped when the secret is not set. See
-# CONTRIBUTING.md.
+# MOLOCHAI_API_KEY repository secret and is skipped when the secret is not set: `models`,
+# `account`, `ask` plain and with --json, and two errors that cost nothing. CONTRIBUTING.md lists
+# the request count of one run.
 
 on:
   workflow_dispatch:
+    inputs:
+      model:
+        description: "Model id for `molochai ask` (empty: picked from `molochai models`)"
+        required: false
+        default: ""
+        type: string
   schedule:
     - cron: "17 6 * * 1" # Mondays, 06:17 UTC
 
@@ -37,6 +44,8 @@ jobs:
         env:
           MOLOCHAI_LIVE: "1"
           MOLOCHAI_API_KEY: ${{ secrets.MOLOCHAI_API_KEY }}
+          # Empty on scheduled runs. Read by the tests from the environment, never run as code.
+          MOLOCHAI_LIVE_MODEL: ${{ inputs.model }}
         run: |
           if [ -z "$MOLOCHAI_API_KEY" ]; then
             echo "::notice title=Live tests::The MOLOCHAI_API_KEY secret is not set: only the unauthenticated tier runs, the authenticated tests are skipped."

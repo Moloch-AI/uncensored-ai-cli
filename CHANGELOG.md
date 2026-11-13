@@ -32,8 +32,14 @@ SDK. `RELEASING.md` has the steps.
   it is a dry run.
 - `tests/live/`: opt-in tests against the real API, skipped unless `MOLOCHAI_LIVE=1`.
   `molochai models`, `account` and `ask` with an invalid key must exit 1 with the HTTP 401
-  message; with `MOLOCHAI_API_KEY` set, `models`, `account` and one small `ask --json` are
-  checked as well. `.github/workflows/live.yml` runs them weekly and on demand.
+  message; with `MOLOCHAI_API_KEY` set, `models`, `account`, one small `ask` plain and with
+  `--json`, an unknown model id (exit 1, HTTP 422) and a model that is not being served (exit 1,
+  `model_unavailable`) are checked as well. An account with no plan or credit fails one test
+  with a "top up the test account" message and the rest are skipped. `MOLOCHAI_LIVE_MODEL`
+  (also a `model` input of the workflow) picks the model for `ask`, and
+  `MOLOCHAI_LIVE_BASE_URL` points the suite at the mock server for development.
+  `.github/workflows/live.yml` runs them weekly and on demand; CONTRIBUTING.md lists the
+  requests of one run.
 - `RELEASING.md`: the one-time PyPI and GitHub setup, the switch to the SDK from PyPI, and the
   release steps.
 

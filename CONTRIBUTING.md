@@ -74,21 +74,67 @@ molochai chat
 
 ## Live tests against the real API
 
-`tests/live/` runs the CLI against the hosted API at `https://api.molochai.dev/api/v1`, with a
-temporary config directory (your config file is not used) and without `MOLOCHAI_BASE_URL`. It
-uses the same switches as the SDK's live tests and is skipped unless `MOLOCHAI_LIVE=1`:
+`tests/live/` runs the CLI in-process against the hosted API at
+`https://api.molochai.dev/api/v1`, with a temporary config directory (your config file is not
+used) and without your `MOLOCHAI_BASE_URL`. It uses the same switches as the SDK's live tests and
+is skipped unless `MOLOCHAI_LIVE=1`:
 
 ```bash
 MOLOCHAI_LIVE=1 pytest tests/live -v -rs                                 # unauthenticated tier
 MOLOCHAI_LIVE=1 MOLOCHAI_API_KEY=your-api-key pytest tests/live -v -rs   # both tiers
 ```
 
-- The unauthenticated tier runs `molochai models`, `account` and `ask` with an obviously invalid
-  key and expects exit code 1 with the HTTP 401 message. It costs nothing and needs no account.
-- The authenticated tier runs `molochai models`, `molochai account` and one
-  `molochai ask --json` with a tiny prompt to the first available model. It checks the shape of
-  the output, not the wording, and uses a little of the account's quota or credit. An account
-  with no plan and no credit fails with a message that says so (HTTP 402).
+The unauthenticated tier runs `molochai models`, `account` and `ask` with an obviously invalid
+key and expects exit code 1 with the HTTP 401 message. It costs nothing and needs no account.
+
+The authenticated tier runs in this order:
+
+1. `molochai models`: the `ID NAME AVAILABLE` table, `yes` or `no` on every row, and at least
+   one model available (none available is an outage and fails the run).
+2. `molochai account`: the plan, tier, credit and email-verified lines, no email in the output
+   (no `--show-email`), and a context limit for every available model in the per-model table.
+   The credit is checked for its format, never its amount, and failure messages never include
+   the output.
+3. `molochai ask "Reply with the single word: pong"` on
+   `llama-3.3-70b-instruct-abliterated`, which does not reason, or on the first available model
+   when that one is not served: exit code 0 and an answer on stdout.
+4. The same with `--json`: the `chat.completion` shape, the `model` echo, `finish_reason`, and
+   usage with total = prompt + completion.
+5. `molochai ask --model` with an unknown model id: exit code 1 and the HTTP 422 message.
+6. When `molochai models` lists a model as unavailable, `molochai ask --model` with it: exit
+   code 1 and the `model_unavailable` message. Otherwise that test is skipped.
+
+Tests check the shape of the output, never the wording. An account problem (402 no plan and no
+credit, 401, 403, a used-up quota) fails the first test that meets it with one sentence, such as
+"Top up the test account ..." for 402, and the tests after it are skipped.
+
+What one run sends:
+
+| Tier | Requests | Of which generate a reply |
+|---|---|---|
+| Unauthenticated | 3 | none: all are refused with 401 |
+| Authenticated | 6, or 5 when every model is available | 2: `ask` and `ask --json` |
+
+The two generating requests are tiny: a one-line prompt and a one-word answer, both on the
+non-reasoning model when it is served. `ask` always streams. The other requests (models,
+account, the 422 and the 503) generate nothing. When the non-reasoning model is not being served,
+both `ask` runs go to a reasoning model, which may also spend a few hundred reasoning tokens
+each, and a transient server error can add a retry or two.
+
+Two optional variables:
+
+- `MOLOCHAI_LIVE_MODEL=<id>` makes both `ask` runs use that model. The workflow's
+  "Run workflow" button has the same option as its `model` input.
+- `MOLOCHAI_LIVE_BASE_URL` points the suite at another deployment, for example the mock server
+  while you work on these tests (it is passed to the CLI as `MOLOCHAI_BASE_URL`; your own
+  `MOLOCHAI_BASE_URL` is not). The mock accepts any key, so leave out the invalid-key tests
+  there:
+
+  ```bash
+  node mock-server/server.mjs --port 4010 --quiet --unavailable qwen3.8-27b-uncensored
+  MOLOCHAI_LIVE=1 MOLOCHAI_API_KEY=mock-key MOLOCHAI_LIVE_BASE_URL=http://127.0.0.1:4010/api/v1 \
+    pytest tests/live -v -rs -k "not invalid_key"
+  ```
 
 API keys are not scoped, so use a key from an account that holds only a small amount of credit.
 
